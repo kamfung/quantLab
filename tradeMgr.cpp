@@ -50,15 +50,39 @@ struct TInstTradeData {
 };
 
 /*
+ * This functor defines an interface based on which different derived functors can be
+ * defined, allowing for future extensibility to present the data in different ways.
+ */
+class CDataPresenter {
+public:
+    virtual void operator()( ostream & out, const map<string,TInstTradeData> &data) = 0;
+};
+
+class CQuantLabPresenter : public CDataPresenter {
+public:
+    virtual void operator() (ostream & out, const map<string, TInstTradeData> &data) {
+        for(auto &p: data) {
+            out << p.first << "," << p.second.maxTradeGap << ","
+            << p.second.totalVolume << ","
+            << long(p.second.totalConsideration / p.second.totalVolume) << ","
+            << p.second.maxPrice << endl;
+        }
+    }
+};
+
+/*
  * A class that processes incoming trade data entries, stores relavent trade data
  * information for easy lookup and presentation based on instruments.
  */
 class CTradeDataMgr {
 public:
     void addDataEntry(const TDataEntry & entry);
+    void setDataPresenter(CDataPresenter* p);
     void presentData(ostream &out);
+    
 private:
     map<string,TInstTradeData> tradeDataLookup;
+    CDataPresenter *presenter = nullptr;
 };
 
 void CTradeDataMgr::addDataEntry(const TDataEntry &entry)
@@ -77,13 +101,15 @@ void CTradeDataMgr::addDataEntry(const TDataEntry &entry)
     }
 }
 
+void CTradeDataMgr::setDataPresenter(CDataPresenter* p)
+{
+    presenter = p;
+}
+
 void CTradeDataMgr::presentData(ostream & out)
 {
-    for(auto &p: tradeDataLookup) {
-        out << p.first << "," << p.second.maxTradeGap << ","
-            << p.second.totalVolume << ","
-            << long(p.second.totalConsideration / p.second.totalVolume) << ","
-            << p.second.maxPrice << endl;
+    if (presenter != nullptr) {
+        (*presenter)(out, tradeDataLookup);
     }
 }
 
@@ -160,7 +186,9 @@ int main(int argc, const char * argv[]) {
     
     const string dataFormat = "[0-9]+,[a-z]+,[0-9]+,[0-9]+";
     CDataIterator dataIt(input, dataFormat);
+    CQuantLabPresenter qLabPresenter;
     CTradeDataMgr tradeMgr;
+    tradeMgr.setDataPresenter(&qLabPresenter);
     
     while (dataIt.HasNext()) {
         TDataEntry dataEntry = dataIt.GetNext();
