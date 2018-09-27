@@ -1,0 +1,4 @@
+I spent about over 3 hours woking on this test:
+Around 1.5 hour writing the input data processing class CDataIterator. Try to use regex to validate data entry in the input, but it did not work due to the provided data file being in dos format and had a hidden return chars in each line, had to debug for a while to find it out.
+over 1 hour for other classes and testing
+around half an hour for tidying up the code and write comments and readme.
